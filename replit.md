@@ -1,6 +1,6 @@
-# [Project name]
+# GhostLeaks Telegram Knowledge Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Telegram bot that answers GhostLeaks questions only from the supplied PDFs and forwards user-approved requests to the contact listed in those documents.
 
 ## Run & Operate
 
@@ -9,7 +9,9 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `TELEGRAM_BOT_TOKEN` — Telegram bot token from BotFather.
+- Gmail request forwarding uses the connected Gmail integration; no Gmail password is stored in the app.
+- The bot does not require `DATABASE_URL`; chat-flow state and rate limits are currently in memory.
 
 ## Stack
 
@@ -22,23 +24,33 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/bot/knowledge.ts` — extractive passage retrieval and exact unsupported-answer fallback.
+- `artifacts/api-server/src/bot/index.ts` — Telegram commands, Q&A routing, and the confirmed request-forwarding flow.
+- `artifacts/api-server/src/bot/gmail.ts` — Gmail API send adapter for user-confirmed support requests.
+- `artifacts/api-server/src/knowledge/documents.json` — page-cited text corpus generated from the three supplied PDFs.
+- `artifacts/api-server/knowledge/sources/` — original PDFs used by the bot.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Answers are extractive passages from the source PDFs, not free-form model generations, to avoid unsupported claims.
+- Every answer includes the PDF title and page number; low-confidence searches use the user's exact fallback message.
+- Conflicting payment-provider statements are shown as a documentation mismatch (Razorpay in v2 vs. Stripe in the Enterprise docs).
+- Forwarded messages require an explicit Telegram confirmation and use the fixed recipient printed in the PDFs.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Replies to `/start` and greetings with `I am GhostLEAKS AI`.
+- Retrieves passages for overview, features, deployment, API, security, domain monitoring, architecture, billing, licensing, and FAQ questions.
+- Collects company, work email, and request text for forwarding; previews the recipient and message before sending via the connected Gmail account.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Do not answer beyond the supplied PDFs; when no supporting passage is found, use the exact fallback configured in the bot.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The contact email is documented for licensing questions and vulnerability reports; the PDFs do not verify that it is a general-support address or that it is currently active.
+- Rebuild the source corpus after replacing or updating PDFs by running `python3 artifacts/api-server/scripts/build-knowledge-base.py`.
 
 ## Pointers
 
